@@ -95,7 +95,7 @@ class Commands
         when 5
             #get a quote by ID
         when 6
-            #search for quote by arg
+            #search for quote by arg string
         when 7
             #add a new quote, return the quote ID
             if (argumentProvided)
@@ -108,6 +108,7 @@ class Commands
             if (IsBotGod(event.author))
                 if (!args.empty?)
                     if (VariableHelpers.IsStringNumber(args))
+                        quoteToDelete = args.to_i                        
                         #delete the quote with specified ID
                     else
                         event.respond "You must provide a valid quote number!"

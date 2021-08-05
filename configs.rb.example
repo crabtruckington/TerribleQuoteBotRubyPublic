@@ -4,8 +4,10 @@ class Configs
         "logLevel" => 0,   #0 = DEBUG, 1 = INFO, 2 = WARN, 3 = ERROR, 4 = FATAL, 5 = UNKNOWN
         "logLocation" => "./terribleQuoteBot.log".freeze,         # the file you want the logs to be saved in
         "postgresConnString" => "host=localhost user=xxxx password=xxxx dbname=quotes".freeze,
-        "discordToken" => "xxxxxx".freeze,
-        "discordPrefix" => "!".freeze
+        "discordToken" => "xxxxxxx".freeze,
+        "discordPrefix" => "!".freeze,
+        "activityCycleSleepLengthInSeconds" => 30 * 60, #30 minutes
+        "activityCycleFailSleepInSeconds" => 30
     }
 
     DEFAULTCONFIG = "badType".freeze

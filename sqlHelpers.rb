@@ -4,6 +4,7 @@ require_relative "configs"
 # shared connection is for the chart point generation methods, open/close are called in statsgen.rb
 class SQLMethods
     @sharedConnection = ""
+    @prng = Random.new
     
     def self.openSharedConnection()
         @sharedConnection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))
@@ -79,6 +80,49 @@ class SQLMethods
         connection =  PG::Connection.open(Configs.getConfigValue("postgresConnString"))
         connection.exec("DELETE FROM monitorstats where statsdate < '#{retentionDate}'")
         connection.close()
+    end
+
+
+    def self.GetRandomQuote()        
+        quoteUpperRange = (GetTotalQuotesFromDatabase() + 1)
+        selectedQuoteID = (@prng.rand 1..quoteUpperRange).to_s
+        
+        result = GetQuoteByID(selectedQuoteID)
+
+        return result
+    end
+
+    def self.GetQuoteByID(quoteID)
+        connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))        
+        pgresult = connection.exec("SELECT quote FROM quotes WHERE id = #{selectedQuoteID.to_s}")
+        connection.close()
+
+        return pgresult.getvalue(0, 0)
+    end
+
+    def self.FindQuotesByText(searchText)
+        returnedIDs = ""
+
+        connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))        
+        pgresult = connection.exec("SELECT id FROM quotes WHERE quote ILIKE %#{searchText}%")
+        connection.close()
+
+        pgresult.each do |row|
+            returnedIDs += row[0].to_s + ", "
+        end
+
+        if (!returnedIDs.empty?)
+            returnedIDs = returnedIDs.strip.chop
+        end
+
+        return returnedIDs
+    end
+
+    def self.GetTotalQuotesFromDatabase()
+        connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))
+        pgresult = connection.exec("SELECT MAX(id) FROM quotes")
+        connection.close()
+        return pgresult.getvalue(0, 0).to_i
     end
 
 end
