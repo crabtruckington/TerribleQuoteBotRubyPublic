@@ -15,8 +15,7 @@ require_relative 'variableHelpers'
 # 7 = add quote
 # 8 = delete quote
 
-class Commands    
-
+class Commands
     def self.ParseCommand(event, bot)
         commandType = -1
         contentArray = event.content.chomp.split(" ", 2)
@@ -43,7 +42,6 @@ class Commands
             if (!args.empty?)
                 if (VariableHelpers.IsStringNumber(args))
                     Logger.log("User is trying to select a specific quote", 0)
-                    selectedQuote = args.to_i
                     commandType = 5
                 else
                     Logger.log("User is attempting to search for quotes", 0)
@@ -64,7 +62,6 @@ class Commands
             Logger.log("This command is not for us, ignoring", 0)
         end
 
-
         if (commandType > 0)
             Logger.log("Executing command", 0)
             ExecuteCommand(args, commandType, event, bot)
@@ -77,39 +74,42 @@ class Commands
         argumentProvided = (!args.empty?)
 
         case commandType
-        when 1            
+        when 1 #PING!
             Logger.log("Command type is 1", 0)
             event.respond "Pong!"
-        when 2
+        when 2 #quote help            
             event.respond "The following commands are supported:
             !quote: shows a random quote, optionally provide a number to show a specific quote
             !addquote <text>: adds a quote to the database
             !findquote <text> (alias: !quotesearch): search for a quote containing this text
             !ping: pong!"
-        when 3
+        when 3 #set activity
             Logger.log("Setting new activity...", 0)
             SetNewActivity(bot)
             Logger.log("Activity set!", 0)
-        when 4
-            #get a random quote
-        when 5
-            #get a quote by ID
-        when 6
-            #search for quote by arg string
-        when 7
-            #add a new quote, return the quote ID
+        when 4 #get a random quote
+            result = SQLMethods.GetRandomQuote()
+            event.respond result
+        when 5 #get a quote by ID
+            result = GetQuoteByID(args.to_i)
+            event.respond result
+        when 6 #search for quote by arg string
+            result = SQLMethods.FindQuotesByText(args)
+            event.respond result
+        when 7 #add a new quote, return the quote ID
             if (argumentProvided)
-
+                result = SQLMethods.AddQuote(args)
+                event.respond result
             else
                 event.respond "You must provide some text to add a quote!"
             end
-        when 8
-            #check for BOT GOD role and then delete quote by ID
+        when 8 #check for BOT GOD role and then delete quote by ID
             if (IsBotGod(event.author))
                 if (!args.empty?)
                     if (VariableHelpers.IsStringNumber(args))
                         quoteToDelete = args.to_i                        
-                        #delete the quote with specified ID
+                        result = SQLMethods.DeleteQuoteFromDatabase(quoteToDelete)
+                        event.respond result
                     else
                         event.respond "You must provide a valid quote number!"
                     end
@@ -125,15 +125,7 @@ class Commands
         end
     end
 
-# COMMAND TYPES:
-# 1 = ping
-# 2 = quote help
-# 3 = set activity
-# 4 = random quote
-# 5 = specific quote
-# 6 = quote search
-# 7 = add quote
-# 8 = delete quote
+    
     def self.IsBotGod(member)
         isBotGod = false
         member.roles.each do |role|

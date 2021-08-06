@@ -1,88 +1,11 @@
-require "pg"
-require_relative "configs"
+require 'pg'
+require_relative 'configs'
+require_relative 'logging'
 
 # shared connection is for the chart point generation methods, open/close are called in statsgen.rb
 class SQLMethods
-    @sharedConnection = ""
     @prng = Random.new
     
-    def self.openSharedConnection()
-        @sharedConnection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))
-    end
-
-    def self.closeSharedConnection()
-        @sharedConnection.close()
-    end
-    
-    def self.insertStats(columns, values)
-        connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))
-        connection.exec_params("INSERT INTO monitorstats (#{columns}) VALUES (#{values});")
-        connection.close()
-    end
-
-    def self.getComputedStatAggregate(ntileValue, returnedColumn, computeColumn1, computeColumn2)
-        results = Array.new
-        statsCutoff = (Time.new - Configs.getConfigValue("statsRetentionPeriod")).strftime("%Y-%m-%d %H:%M:%S")
-        sqlcmd = "with aggregatestats (#{computeColumn1}, #{computeColumn2}, ntile) as ( " +
-                 "select #{computeColumn1}, #{computeColumn2}, NTILE(#{ntileValue}) OVER(ORDER BY statsdate ASC) from monitorstats " +
-                 "WHERE statsdate > '#{statsCutoff}' " +
-                 ")" +
-                 "SELECT AVG(#{computeColumn1} - #{computeColumn2}) as #{returnedColumn} from aggregatestats GROUP BY ntile ORDER BY ntile ASC"
-
-        #connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))
-        pgresults = @sharedConnection.exec(sqlcmd)
-        #connection.close()
-
-        pgresults.each_row do |row|
-            results << row[0].to_f
-        end
-
-        return results
-    end
-
-    def self.getStatAggregate(ntileValue, column)
-        results = Array.new
-        statsCutoff = (Time.new - Configs.getConfigValue("statsRetentionPeriod")).strftime("%Y-%m-%d %H:%M:%S")
-        sqlcmd = "with aggregatestats (#{column}, ntile) as ( " +
-                 "select #{column}, NTILE(#{ntileValue}) OVER(ORDER BY statsdate ASC) from monitorstats " +
-                 "WHERE statsdate > '#{statsCutoff}' " +
-                 ")" +
-                 "SELECT AVG(#{column}) from aggregatestats GROUP BY ntile ORDER BY ntile ASC"
-
-        #connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))
-        pgresults = @sharedConnection.exec(sqlcmd)
-        #connection.close()
-
-        pgresults.each_row do |row|
-            results << row[0].to_f
-        end
-
-        return results
-    end
-
-    def self.getMostRecentStatValue(column)
-        #connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))
-        pgresults = @sharedConnection.exec("SELECT #{column} FROM monitorstats ORDER BY statsdate DESC LIMIT 1")
-        #connection.close()
-        
-        return pgresults.getvalue(0,0)
-    end
-
-    def self.getOldestStat()
-        statsCutoff = (Time.new - Configs.getConfigValue("statsRetentionPeriod")).strftime("%Y-%m-%d %H:%M:%S")
-        pgresults = @sharedConnection.exec("SELECT statsdate FROM monitorstats WHERE statsdate > '#{statsCutoff}' " +
-                                           "ORDER BY statsdate ASC LIMIT 1")
-        return pgresults.getvalue(0,0)
-    end
-
-    def self.cleanUpOldStats(statsCutoff)
-        retentionDate = (Time.new - statsCutoff).strftime("%Y-%m-%d %H:%M:%S")
-        connection =  PG::Connection.open(Configs.getConfigValue("postgresConnString"))
-        connection.exec("DELETE FROM monitorstats where statsdate < '#{retentionDate}'")
-        connection.close()
-    end
-
-
     def self.GetRandomQuote()        
         quoteUpperRange = (GetTotalQuotesFromDatabase() + 1)
         selectedQuoteID = (@prng.rand 1..quoteUpperRange).to_s
@@ -93,18 +16,22 @@ class SQLMethods
     end
 
     def self.GetQuoteByID(quoteID)
+        result = ""
         connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))        
-        pgresult = connection.exec("SELECT quote FROM quotes WHERE id = #{selectedQuoteID.to_s}")
+        pgresult = connection.exec_params("SELECT quote FROM quotes WHERE id = $1", [selectedQuoteID])
         connection.close()
 
-        return pgresult.getvalue(0, 0)
+        result = "Quote #{quoteID}: " + pgresult.getvalue(0, 0)
+
+        return result
     end
 
     def self.FindQuotesByText(searchText)
         returnedIDs = ""
+        result = ""
 
         connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))        
-        pgresult = connection.exec("SELECT id FROM quotes WHERE quote ILIKE %#{searchText}%")
+        pgresult = connection.exec_params("SELECT id FROM quotes WHERE quote ILIKE $1", ["%#{searchText}%"])
         connection.close()
 
         pgresult.each do |row|
@@ -113,9 +40,24 @@ class SQLMethods
 
         if (!returnedIDs.empty?)
             returnedIDs = returnedIDs.strip.chop
+            result = "The following quotes were found: " + returnedIDs
+        else
+            result = "No quotes were found with the text \"#{searchText}\""
         end
 
-        return returnedIDs
+        return result
+    end
+
+    def self.AddQuote(quoteText)
+        totalQuotes = -1
+        results = ""
+
+        connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))
+        connection.exec("INSERT INTO quotes (quote) VALUES ($1)", [quoteText])
+        connection.close()
+
+        totalQuotes = GetTotalQuotesFromDatabase()
+        results = "Quote #{totalQuotes} added to the database!"        
     end
 
     def self.GetTotalQuotesFromDatabase()
@@ -123,6 +65,42 @@ class SQLMethods
         pgresult = connection.exec("SELECT MAX(id) FROM quotes")
         connection.close()
         return pgresult.getvalue(0, 0).to_i
+    end
+
+
+    def self.DeleteQuoteFromDatabase(quoteID)
+        totalQuotes = GetTotalQuotesFromDatabase()
+        returnMessage = ""
+        sqlCmd = ""
+
+        if (quoteID < 1 || quoteID > totalQuotes)
+            returnMessage = "Quote #{quoteID} does not exist! Quote range is 1 - #{totalQuotes}"
+            return returnMessage
+        end
+
+        Logger.log("Starting quote deletion...", 0)
+
+        connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))        
+        connection.exec("DELETE FROM quotes WHERE id = $1",  [quoteID])
+        Logger.log("Quote #{quoteID} deleted, swapping tables...")
+
+        tableSwapSQL = 
+        "CREATE TABLE quotestmp ( id INT GENERATED ALWAYS AS IDENTITY, quote VARCHAR NOT NULL );
+        INSERT INTO quotestmp (quote) SELECT quote FROM quotes;
+        DROP TABLE quotes;
+        CREATE TABLE quotes ( id INT GENERATED ALWAYS AS IDENTITY, quote VARCHAR NOT NULL );
+        INSERT INTO quotes (quote) SELECT quote FROM quotestmp;
+        DROP TABLE quotestmp;"
+
+        connection.exec(tableSwapSQL)
+        connection.close()
+
+        Logger.log("Tables swapped!")
+
+        totalQuotes = GetTotalQuotesFromDatabase()
+        returnMessage = "Quote #{quoteID} deleted! New quote range from 1 - #{totalQuotes}"
+
+        return returnMessage
     end
 
 end
