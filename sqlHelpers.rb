@@ -1,8 +1,8 @@
 require 'pg'
 require_relative 'configs'
 require_relative 'logging'
+require_relative 'variableHelpers'
 
-# shared connection is for the chart point generation methods, open/close are called in statsgen.rb
 class SQLMethods
     @prng = Random.new
     
@@ -29,9 +29,10 @@ class SQLMethods
     def self.FindQuotesByText(searchText)
         returnedIDs = ""
         result = ""
+        wildCardSQL = VariableHelpers.AddWildcardsToSQLString(searchText)
 
         connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))        
-        pgresult = connection.exec_params("SELECT id FROM quotes WHERE quote ILIKE $1", ["%#{searchText}%"])
+        pgresult = connection.exec_params("SELECT id FROM quotes WHERE quote ILIKE $1", ["%#{wildCardSQL}%"])
         connection.close()
 
         pgresult.each do |row|

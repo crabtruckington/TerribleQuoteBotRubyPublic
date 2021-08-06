@@ -21,7 +21,7 @@ class Commands
         contentArray = event.content.chomp.split(" ", 2)
         selectedQuote = -1
         
-        command = contentArray[0].downcase            
+        command = contentArray[0].downcase
         if (contentArray.length > 1)
             args = contentArray[1].strip.lstrip
         else
@@ -45,7 +45,7 @@ class Commands
                     commandType = 5
                 else
                     Logger.log("User is attempting to search for quotes", 0)
-                    commandType = 6                    
+                    commandType = 6
                 end
             else
                 Logger.log("No argument passed, user wants a random quote", 0)
@@ -104,28 +104,46 @@ class Commands
                 event.respond "You must provide some text to add a quote!"
             end
         when 8 #check for BOT GOD role and then delete quote by ID
-            if (IsBotGod(event.author))
-                if (!args.empty?)
-                    if (VariableHelpers.IsStringNumber(args))
-                        quoteToDelete = args.to_i                        
-                        result = SQLMethods.DeleteQuoteFromDatabase(quoteToDelete)
-                        event.respond result
-                    else
-                        event.respond "You must provide a valid quote number!"
-                    end
-                else
-                    event.respond "You must provide the quote number to delete!"
-                end
-            else
-                event.respond "You do not have permission to delete quotes!"
-            end
+            if (ValidateDeletionRequest(event, args, member))
+                quoteToDelete = args.to_i
+                result = SQLMethods.DeleteQuoteFromDatabase(quoteToDelete)
+                event.respond result
+            end            
         else
             event.respond "This appears to be a bad command"
             Logger.log("No command type matched", 0)
         end
     end
 
-    
+
+    def self.ValidateDeletionRequest(event, args, member)
+        response = ""
+        
+        if (!IsBotGod(member))
+            name = member.username
+            Logger.log("User #{name} tried to delete a quote with command #{args} !", 3)
+            response = "You do not have permission to delete quotes!"
+            event.respond response
+            return false
+        end
+
+        if (args.empty?)
+            response = "You must provide a quote number to delete!"
+            event.respond response
+            return false
+        end
+
+        if (!VariableHelpers.IsStringNumber(args))
+            totalQuotes = SQLMethods.GetTotalQuotesFromDatabase()
+            response = "You must provide a valid quote number! Valid quote range is 1 - #{totalQuotes}"
+            event.respond response
+            return false
+        end
+
+        return true
+    end
+
+
     def self.IsBotGod(member)
         isBotGod = false
         member.roles.each do |role|
@@ -149,7 +167,7 @@ class Commands
         Logger.log("Setting activity to: " + activityType + " " + activityValue, 0)
         
         case activityType
-        when "playing"            
+        when "playing"
             bot.game = activityValue 
         when "watching"
             bot.watching = activityValue

@@ -1,3 +1,5 @@
+require_relative 'logging'
+
 class Activities
     ACTIVITYARRAY = 
     [
@@ -22,11 +24,22 @@ class Activities
     ]
 
     ACTIVITYARRAYLENGTH = ACTIVITYARRAY.length
-
     @prng = Random.new
+    @usedActivities = Array.new
 
     def self.getNewActivity()
-        activityValue = @prng.rand ACTIVITYARRAYLENGTH
-        return ACTIVITYARRAY[activityValue]
+        if (@usedActivities.length == ACTIVITYARRAY.length)
+            Logger.log("Cycled through all activities, truncating used list...", 0)
+            @usedActivities = Array.new
+        end
+        selectedActivity = ACTIVITYARRAY[(@prng.rand ACTIVITYARRAYLENGTH)]
+
+        while (@usedActivities.include?(selectedActivity)) do
+            Logger.log("We selected a duplicate activity, reselecting...", 0)
+            selectedActivity = ACTIVITYARRAY[(@prng.rand ACTIVITYARRAYLENGTH)]
+        end
+        @usedActivities << selectedActivity
+
+        return selectedActivity
     end
 end
