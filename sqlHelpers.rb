@@ -18,7 +18,7 @@ class SQLMethods
     def self.GetQuoteByID(quoteID)
         result = ""
         connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))        
-        pgresult = connection.exec_params("SELECT quote FROM quotes WHERE id = $1", [selectedQuoteID])
+        pgresult = connection.exec_params("SELECT quote FROM quotes WHERE id = $1", [quoteID])
         connection.close()
 
         result = "Quote #{quoteID}: " + pgresult.getvalue(0, 0)
