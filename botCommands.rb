@@ -51,7 +51,6 @@ class Commands
                 Logger.log("No argument passed, user wants a random quote", 0)
                 commandType = 4
             end
-            commandType = 4
         when "!findquote", "!quotesearch"
             commandType = 6
         when "!addquote"
