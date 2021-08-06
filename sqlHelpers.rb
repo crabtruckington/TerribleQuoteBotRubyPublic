@@ -27,17 +27,24 @@ class SQLMethods
     end
 
     def self.FindQuotesByText(searchText)
+        Logger.log("In the find quotes method", 0)
         returnedIDs = ""
         result = ""
         wildCardSQL = VariableHelpers.AddWildcardsToSQLString(searchText)
+
+        Logger.log("search text is #{searchText}", 0)
 
         connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))        
         pgresult = connection.exec_params("SELECT id FROM quotes WHERE quote ILIKE $1", ["%#{wildCardSQL}%"])
         connection.close()
 
+        Logger.log("Query results are #{pgresult}", 0)
+
         pgresult.each do |row|
             returnedIDs += row[0].to_s + ", "
         end
+
+        Logger.log("the returned ids are #{returnedIDs}", 0)
 
         if (!returnedIDs.empty?)
             returnedIDs = returnedIDs.strip.chop
