@@ -5,4 +5,9 @@ class VariableHelpers
         return result
     end
 
+    def self.AddWildcardsToSQLString(string)
+        newString = string.gsub(" ", "%")
+        return newString
+    end
+
 end
