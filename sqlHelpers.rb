@@ -40,7 +40,7 @@ class SQLMethods
 
 
         pgresult.each do |row|
-            Logger.log("The row value is #{row} and the 0 value is #{row[0]}"), 0
+            Logger.log("The row value is #{row} and the 0 value is #{row[0]}", 0)
             returnedIDs += row[0].to_s + ", "
         end
 
