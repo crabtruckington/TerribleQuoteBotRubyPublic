@@ -8,7 +8,7 @@ class SQLMethods
     
     def self.GetRandomQuote()        
         quoteUpperRange = (GetTotalQuotesFromDatabase() + 1)
-        selectedQuoteID = (@prng.rand 1..quoteUpperRange).to_s
+        selectedQuoteID = (@prng.rand 1..quoteUpperRange)
         
         result = GetQuoteByID(selectedQuoteID)
 
