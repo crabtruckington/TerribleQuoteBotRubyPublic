@@ -75,7 +75,7 @@ class Commands
         case commandType
         when 1 #PING!
             Logger.log("Command type is 1", 0)
-            event.respond "Pong!"
+            event.respond "Pong!" + args.to_s
         when 2 #quote help            
             event.respond "The following commands are supported:
             !quote: shows a random quote, optionally provide a number to show a specific quote
@@ -164,7 +164,7 @@ class Commands
         activityType = selectedActivity[0]
         activityValue = selectedActivity[1]
 
-        Logger.log("Setting activity to: " + activityType + " " + activityValue, 0)
+        Logger.log("Setting activity to: " + activityType + " " + activityValue, 1)
         
         case activityType
         when "playing"
