@@ -17,11 +17,22 @@ class SQLMethods
 
     def self.GetQuoteByID(quoteID)
         result = ""
+        totalQuotes = GetTotalQuotesFromDatabase()
+
+        if (quoteID > totalQuotes)
+            result = "There is no quote #{quoteID}! Valid selections are from 1 - #{totalQuotes}"
+            return result
+        end
+
         connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))        
         pgresult = connection.exec_params("SELECT quote FROM quotes WHERE id = $1", [quoteID])
         connection.close()
 
-        result = "Quote #{quoteID}: " + pgresult.getvalue(0, 0)
+        begin
+            result = "Quote #{quoteID}: " + pgresult.getvalue(0, 0)    
+        rescue ArgumentEerror
+            result = "Could not find quote #{quoteID}! Valid selections are from 1 - #{totalQuotes}"
+        end        
 
         return result
     end
@@ -94,10 +105,10 @@ class SQLMethods
 
         tableSwapSQL = 
         "CREATE TABLE quotestmp ( id INT GENERATED ALWAYS AS IDENTITY, quote VARCHAR NOT NULL );
-        INSERT INTO quotestmp (quote) SELECT quote FROM quotes;
+        INSERT INTO quotestmp (quote) SELECT quote FROM quotes ORDER BY id ASC;
         DROP TABLE quotes;
         CREATE TABLE quotes ( id INT GENERATED ALWAYS AS IDENTITY, quote VARCHAR NOT NULL );
-        INSERT INTO quotes (quote) SELECT quote FROM quotestmp;
+        INSERT INTO quotes (quote) SELECT quote FROM quotestmp ORDER BY id ASC;
         DROP TABLE quotestmp;"
 
         connection.exec(tableSwapSQL)
