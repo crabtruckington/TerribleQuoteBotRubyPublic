@@ -97,11 +97,11 @@ class SQLMethods
             return returnMessage
         end
 
-        Logger.log("Starting quote deletion...", 0)
+        Logger.log("Starting quote deletion...", 1)
 
         connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))        
         connection.exec("DELETE FROM quotes WHERE id = $1",  [quoteID])
-        Logger.log("Quote #{quoteID} deleted, swapping tables...")
+        Logger.log("Quote #{quoteID} deleted, swapping tables...", 1)
 
         tableSwapSQL = 
         "CREATE TABLE quotestmp ( id INT GENERATED ALWAYS AS IDENTITY, quote VARCHAR NOT NULL );
@@ -114,7 +114,7 @@ class SQLMethods
         connection.exec(tableSwapSQL)
         connection.close()
 
-        Logger.log("Tables swapped!")
+        Logger.log("Tables swapped!", 1)
 
         totalQuotes = GetTotalQuotesFromDatabase()
         returnMessage = "Quote #{quoteID} deleted! New quote range from 1 - #{totalQuotes}"
