@@ -38,9 +38,9 @@ class SQLMethods
         pgresult = connection.exec_params("SELECT id FROM quotes WHERE quote ILIKE $1", ["%#{wildCardSQL}%"])
         connection.close()
 
-        Logger.log("Query results are #{pgresult}", 0)
 
         pgresult.each do |row|
+            Logger.log("The row value is #{row} and the 0 value is #{row[0]}"), 0
             returnedIDs += row[0].to_s + ", "
         end
 
