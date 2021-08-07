@@ -43,7 +43,7 @@ class SQLMethods
         result = ""
         wildCardSQL = VariableHelpers.AddWildcardsToSQLString(searchText)
 
-        Logger.log("search text is #{searchText}", 0)
+        Logger.log("search text is #{wildCardSQL}", 0)
 
         connection = PG::Connection.open(Configs.getConfigValue("postgresConnString"))        
         pgresult = connection.exec_params("SELECT id FROM quotes WHERE quote ILIKE $1", ["%#{wildCardSQL}%"])
