@@ -103,7 +103,7 @@ class Commands
                 event.respond "You must provide some text to add a quote!"
             end
         when 8 #check for BOT GOD role and then delete quote by ID
-            if (ValidateDeletionRequest(event, args, member))
+            if (ValidateDeletionRequest(event, args))
                 quoteToDelete = args.to_i
                 result = SQLMethods.DeleteQuoteFromDatabase(quoteToDelete)
                 event.respond result
@@ -115,8 +115,9 @@ class Commands
     end
 
 
-    def self.ValidateDeletionRequest(event, args, member)
+    def self.ValidateDeletionRequest(event, args)
         response = ""
+        member = event.author
         
         if (!IsBotGod(member))
             name = member.username
