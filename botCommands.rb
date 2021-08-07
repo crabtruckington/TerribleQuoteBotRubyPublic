@@ -90,7 +90,7 @@ class Commands
             result = SQLMethods.GetRandomQuote()
             event.respond result
         when 5 #get a quote by ID
-            result = GetQuoteByID(args.to_i)
+            result = SQLMethods.GetQuoteByID(args.to_i)
             event.respond result
         when 6 #search for quote by arg string
             result = SQLMethods.FindQuotesByText(args)
