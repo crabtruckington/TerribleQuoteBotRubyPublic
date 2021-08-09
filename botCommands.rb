@@ -92,8 +92,12 @@ class Commands
             "!ping: pong!"
         when 3 #set activity
             Logger.log("Setting new activity...", 0)
-            SetNewActivity(bot)
-            Logger.log("Activity set!", 0)
+            if (IsBotGod(event.author))
+                SetNewActivity(bot)                
+                Logger.log("Activity set!", 0)
+            else
+                event.respond "You do not have permission to set activities!"
+            end
         when 4 #get a random quote
             result = SQLMethods.GetRandomQuote()
             event.respond result
