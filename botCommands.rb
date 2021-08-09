@@ -14,6 +14,8 @@ require_relative 'variableHelpers'
 # 6 = quote search
 # 7 = add quote
 # 8 = delete quote
+# 9 = format quote
+#10 = add stored formatted quote
 
 class Commands
     def self.ParseCommand(event, bot)
@@ -57,6 +59,10 @@ class Commands
             commandType = 7
         when "!delquote"
             commandType = 8
+        when "!quoteformat", "!formatquote"
+            commandType = 9
+        when "!addformattedquote"
+            commandType = 10
         else
             Logger.log("This command is not for us, ignoring", 0)
         end
@@ -77,11 +83,13 @@ class Commands
             Logger.log("Command type is 1", 0)
             event.respond "Pong!" + args.to_s
         when 2 #quote help            
-            event.respond "The following commands are supported:
-            !quote: shows a random quote, optionally provide a number to show a specific quote
-            !addquote <text>: adds a quote to the database
-            !findquote <text> (alias: !quotesearch): search for a quote containing this text
-            !ping: pong!"
+            event.respond "The following commands are supported:\n" +
+            "!quote: shows a random quote, optionally provide a number to show a specific quote\n" +
+            "!addquote <text>: adds a quote to the database\n" +
+            "!findquote <text> (alias: !quotesearch): search for a quote containing this text\n" +
+            "!formatquote <text> (alias: !quoteformat): format a quote before adding it\n" +
+            "!addformattedquote: adds the last quote that was formatted\n" +            
+            "!ping: pong!"
         when 3 #set activity
             Logger.log("Setting new activity...", 0)
             SetNewActivity(bot)
@@ -107,7 +115,30 @@ class Commands
                 quoteToDelete = args.to_i
                 result = SQLMethods.DeleteQuoteFromDatabase(quoteToDelete)
                 event.respond result
-            end            
+            end
+        when 9 #format a quote
+            result = ""
+            if (argumentProvided)
+                result = VariableHelpers.FormatQuote(args, event)
+            else
+                result = "You must provide some text to format!"
+            end
+            event.respond result
+        when 10 #add stored quote
+            result = ""
+            quoteAddable = VariableHelpers.IsLastFormattedQuoteAddable()
+            case quoteAddable
+            when 1
+                quote = VariableHelpers.ReturnLastFormattedQuote()
+                result = SQLMethods.AddQuote(quote)
+            when 2
+                result = "There is no stored formatted quote! You must format a quote to use this command!"
+            when 3 
+                result = "The stored quote has already been added! It was:\n" + VariableHelpers.ReturnLastFormattedQuote()
+            else
+                result = "Something went wrong determining the status of the last formatted quote, please check the logs!"
+            end
+            event.respond result
         else
             event.respond "This appears to be a bad command"
             Logger.log("No command type matched", 0)
