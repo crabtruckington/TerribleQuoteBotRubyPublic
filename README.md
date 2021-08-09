@@ -27,5 +27,7 @@ You will need a Discord developer account with a bot already created, and a Post
 3) Rename or copy `configs.rb.example` to `configs.rb`
 4) Enter your Postgres connection string, and your Discord API token into the configuration file
 5) Connect to the Postgres database and create the table, as defined in `quoteTable.sql`
-   a) Optionally, you should at least 1 record to the `quotes` table at this point, to prevent the bot from potentially being unable to retrieve data
-5) Run the `quotebot.rb` file, the bot will join your server
+    - Optionally, you should at least 1 record to the `quotes` table at this point, to prevent the bot from potentially being unable to retrieve data
+6) Run the `quotebot.rb` file, the bot will join your server
+7) In Discord, create a role called `BotGod` and assign it to any users who should be able to administer the bot
+8) Enjoy your bot
